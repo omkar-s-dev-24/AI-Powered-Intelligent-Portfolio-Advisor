@@ -1,0 +1,242 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* --- PAGE STYLES --- */
+    .wealth-container { max-width: 1200px; margin: 0 auto; }
+    
+    /* Header */
+    .wealth-header { text-align: center; margin-bottom: 50px; }
+    .wealth-title { font-weight: 800; color: white; margin-bottom: 10px; }
+    .wealth-subtitle { color: #888; font-size: 1rem; }
+
+    /* Glass Cards */
+    .glass-card {
+        background: #0b0b0f;
+        border: 1px solid #2a2a35;
+        border-radius: 15px;
+        padding: 30px;
+        height: 100%;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    /* Input Fields */
+    label { font-size: 0.9rem; color: #aaa; margin-bottom: 8px; display: block; }
+    .form-control-dark {
+        background: #111;
+        border: 1px solid #333;
+        color: white;
+        height: 50px;
+        border-radius: 8px;
+    }
+    .form-control-dark:focus {
+        background: #111;
+        color: white;
+        box-shadow: none;
+    }
+
+    /* --- LEFT CARD: SIP (CYAN THEME) --- */
+    .card-sip { border-top: 4px solid #00E5FF; }
+    .title-sip { color: #00E5FF; font-weight: 700; margin-bottom: 25px; display: flex; align-items: center; }
+    .input-sip:focus { border-color: #00E5FF; }
+    
+    .btn-sip {
+        background: linear-gradient(45deg, #00E5FF, #2979FF);
+        border: none;
+        color: black;
+        font-weight: 800;
+        width: 100%;
+        height: 50px;
+        border-radius: 8px;
+        margin-top: 20px;
+        transition: 0.3s;
+    }
+    .btn-sip:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    .result-box-sip {
+        background: #08080a;
+        border: 1px solid #333;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 30px;
+    }
+    .res-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.95rem; }
+    .res-val { font-weight: 700; color: white; }
+    .res-total { font-size: 1.4rem; color: #00E5FF; font-weight: 800; }
+    .res-real { color: #FFD600; font-weight: 700; }
+
+    /* --- RIGHT CARD: GOAL (GOLD THEME) --- */
+    .card-goal { border-top: 4px solid #FFD600; }
+    .title-goal { color: #FFD600; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; }
+    .quote-goal { color: #666; font-style: italic; font-size: 0.9rem; margin-bottom: 25px; }
+    .input-goal:focus { border-color: #FFD600; }
+
+    .btn-goal {
+        background: linear-gradient(45deg, #FFD600, #FF6D00);
+        border: none;
+        color: black;
+        font-weight: 800;
+        width: 100%;
+        height: 50px;
+        border-radius: 8px;
+        margin-top: 20px;
+        transition: 0.3s;
+    }
+    .btn-goal:hover { opacity: 0.9; transform: translateY(-2px); }
+
+    .result-box-goal {
+        text-align: center;
+        margin-top: 40px;
+    }
+    .goal-sip-val { font-size: 3.5rem; font-weight: 800; color: #FFD600; line-height: 1; margin: 15px 0; }
+    .badge-gray { background: #222; color: #aaa; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; }
+
+    /* Footer */
+    .footer-text { text-align: center; color: #555; font-size: 0.85rem; margin-top: 80px; padding-bottom: 20px; border-top: 1px solid #222; padding-top: 20px; }
+</style>
+
+<div class="wealth-container">
+    
+    <div class="wealth-header">
+        <h2 class="wealth-title"><i class="fas fa-calculator me-2 text-primary"></i>Wealth Intelligence Center</h2>
+        <p class="wealth-subtitle">AI-Powered SIP, Lumpsum & Inflation Forecasting</p>
+    </div>
+
+    <div class="row g-5">
+        
+        <div class="col-md-6">
+            <div class="glass-card card-sip">
+                <h4 class="title-sip"><i class="fas fa-coins me-2"></i>SIP Growth Forecaster</h4>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label>Monthly Amount (₹)</label>
+                        <input type="number" id="sip-amount" class="form-control form-control-dark input-sip" value="5000">
+                    </div>
+                    <div class="col-md-6">
+                        <label>Time Period (Years)</label>
+                        <input type="number" id="sip-years" class="form-control form-control-dark input-sip" value="10">
+                    </div>
+                    <div class="col-md-6">
+                        <label>Expected Return (%)</label>
+                        <input type="number" id="sip-rate" class="form-control form-control-dark input-sip" value="12">
+                    </div>
+                    <div class="col-md-6">
+                        <label>Inflation Rate (%)</label>
+                        <input type="number" id="sip-inflation" class="form-control form-control-dark input-sip" value="6">
+                    </div>
+                </div>
+
+                <button class="btn-sip" onclick="calcSIP()">Calculate Future Value</button>
+
+                <div class="result-box-sip">
+                    <div class="res-row">
+                        <span class="text-white">Invested Amount:</span>
+                        <span class="res-val" id="res-invested">₹6,00,000</span>
+                    </div>
+                    <div class="res-row">
+                        <span class="text-success">Wealth Gained:</span>
+                        <span class="res-val text-success" id="res-gained">₹5,61,695.38</span>
+                    </div>
+                    <hr class="border-secondary my-3">
+                    <div class="res-row align-items-center">
+                        <span class="text-white fs-5">Total Value:</span>
+                        <span class="res-total" id="res-total">₹11,61,695.38</span>
+                    </div>
+                    <div class="res-row justify-content-end mt-1">
+                        <small class="text-secondary me-2">Inflation Adjusted (Real Value):</small>
+                        <small class="res-real" id="res-real">₹8,08,262.8</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="glass-card card-goal">
+                <h4 class="title-goal"><i class="fas fa-bullseye me-2"></i>AI Goal Recommender</h4>
+                <p class="quote-goal">"I want to reach ₹1 Crore in 15 years..."</p>
+
+                <div class="mb-3">
+                    <label>Target Amount (₹)</label>
+                    <input type="number" id="goal-target" class="form-control form-control-dark input-goal" value="10000000">
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label>Years to Goal</label>
+                        <input type="number" id="goal-years" class="form-control form-control-dark input-goal" value="15">
+                    </div>
+                    <div class="col-md-6">
+                        <label>Expected Return (%)</label>
+                        <input type="number" id="goal-rate" class="form-control form-control-dark input-goal" value="12">
+                    </div>
+                </div>
+
+                <button class="btn-goal" onclick="calcGoal()">Get AI Recommendation</button>
+
+                <div class="result-box-goal">
+                    <p class="text-secondary mb-0">To achieve this goal, start a Monthly SIP of:</p>
+                    <div class="goal-sip-val" id="goal-result">₹19,819</div>
+                    <span class="badge-gray">Assuming 12% annual return</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer-text">
+        <p class="mb-0">AI-Powered Portfolio Advisory System • Third Year Engineering Project</p>
+    </div>
+</div>
+
+<script>
+    // --- SIP LOGIC ---
+    function calcSIP() {
+        const P = parseFloat(document.getElementById('sip-amount').value);
+        const years = parseFloat(document.getElementById('sip-years').value);
+        const rate = parseFloat(document.getElementById('sip-rate').value);
+        const inflation = parseFloat(document.getElementById('sip-inflation').value);
+
+        if(!P || !years || !rate) return;
+
+        const n = years * 12;
+        const i = rate / 12 / 100;
+
+        // FV = P * [ (1+i)^n - 1 ] / i * (1+i)
+        const fv = P * ( (Math.pow(1 + i, n) - 1) / i ) * (1 + i);
+        const invested = P * n;
+        const gained = fv - invested;
+
+        // Inflation Adjustment: PV = FV / (1+inf)^years
+        const realValue = fv / Math.pow(1 + (inflation/100), years);
+
+        // Update UI
+        document.getElementById('res-invested').innerText = "₹" + Math.round(invested).toLocaleString('en-IN');
+        document.getElementById('res-gained').innerText = "₹" + Math.round(gained).toLocaleString('en-IN');
+        document.getElementById('res-total').innerText = "₹" + Math.round(fv).toLocaleString('en-IN');
+        document.getElementById('res-real').innerText = "₹" + Math.round(realValue).toLocaleString('en-IN');
+    }
+
+    // --- GOAL LOGIC ---
+    function calcGoal() {
+        const target = parseFloat(document.getElementById('goal-target').value);
+        const years = parseFloat(document.getElementById('goal-years').value);
+        const rate = parseFloat(document.getElementById('goal-rate').value);
+
+        if(!target || !years || !rate) return;
+
+        const n = years * 12;
+        const i = rate / 12 / 100;
+
+        // SIP = Target / [ ( (1+i)^n - 1 ) / i * (1+i) ]
+        const sipNeeded = target / ( ((Math.pow(1 + i, n) - 1) / i) * (1 + i) );
+
+        document.getElementById('goal-result').innerText = "₹" + Math.round(sipNeeded).toLocaleString('en-IN');
+    }
+
+    // Run once on load
+    document.addEventListener('DOMContentLoaded', () => {
+        calcSIP();
+        calcGoal();
+    });
+</script>
+{% endblock %}

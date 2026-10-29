@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .risk-container { max-width: 1400px; margin: 0 auto; }
+    /* Search Bar */
+    .search-input { background: rgba(17, 17, 17, 0.8); border: 1px solid #444; color: white; height: 50px; font-size: 1.1rem; border-radius: 5px 0 0 5px; }
+    .search-input:focus { background: #111; color: white; border-color: #FFD600; box-shadow: 0 0 10px rgba(255, 214, 0, 0.2); }
+    .btn-risk { background-color: #FFD600; color: black; border: none; font-weight: 700; padding: 0 30px; height: 50px; border-radius: 0 5px 5px 0; }
+    .btn-risk:hover { background-color: #FFCA28; }
+    /* Risk Banner */
+    .risk-banner { border: 2px solid #333; border-radius: 15px; padding: 40px; text-align: center; background: radial-gradient(circle at center, rgba(20,20,20,1) 0%, rgba(5,5,5,1) 100%); margin-bottom: 30px; transition: 0.3s; }
+    .risk-title { font-size: 0.9rem; letter-spacing: 3px; color: #888; text-transform: uppercase; margin-bottom: 10px; }
+    .risk-val-big { font-size: 5rem; font-weight: 900; line-height: 1; text-shadow: 0 0 20px rgba(0,0,0,0.5); }
+    /* Cards */
+    .metric-card { background: #08080a; border: 1px solid #333; border-radius: 10px; padding: 25px; text-align: center; height: 100%; transition: transform 0.2s; }
+    .metric-card:hover { transform: translateY(-3px); border-color: #555; }
+    .metric-icon { font-size: 1.8rem; margin-bottom: 15px; color: #888; }
+    .metric-val { font-size: 2.2rem; font-weight: 700; color: white; }
+    .metric-label { font-size: 0.8rem; color: #666; text-transform: uppercase; margin-top: 5px; font-weight: 600; }
+    .glass-card { background: #0b0b0f; border: 1px solid #2a2a35; border-radius: 10px; padding: 25px; margin-bottom: 25px; }
+    .expl-box { background: #08080a; border: 1px solid #2a2a35; border-radius: 10px; padding: 25px; }
+    .info-icon { color: #2962FF; margin-right: 8px; }
+    .expl-title { color: white; font-weight: bold; font-size: 1rem; margin-bottom: 5px; }
+    .expl-text { color: #999; font-size: 0.9rem; margin-left: 24px; margin-bottom: 20px; line-height: 1.5; }
+    #drawdownChart { cursor: crosshair; }
+    .footer-text { text-align: center; color: #555; font-size: 0.85rem; margin-top: 50px; padding-bottom: 20px; border-top: 1px solid #222; padding-top: 20px; }
+</style>
+
+<div class="risk-container">
+    <div class="row align-items-center mb-4">
+        <div class="col-md-6"><h3 class="fw-bold mb-0 text-white"><i class="fas fa-shield-alt me-2 text-warning"></i>Risk Analysis Module</h3><small class="text-secondary">Institutional-grade volatility & stress testing</small></div>
+        <div class="col-md-6">
+            <div class="input-group">
+                <input type="text" id="ticker-input" class="form-control search-input" placeholder="Enter Symbol (e.g. ADANIENT.NS)" value="TCS.NS" list="asset-list">
+                <datalist id="asset-list">{% for symbol, name in assets.items %}<option value="{{ symbol }}">{{ name }}</option>{% endfor %}</datalist>
+                <button class="btn btn-risk" onclick="runRiskAnalysis()">Analyze Risk</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loader" class="text-center py-5" style="display: none;">
+        <div class="spinner-border text-warning mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h4>Running Monte Carlo Simulations...</h4><p class="text-secondary">Calculating Variance, Beta & Max Drawdown</p>
+    </div>
+
+    <div id="results" style="display: none;">
+        <div class="risk-banner" id="risk-banner-box">
+            <div class="risk-title">OVERALL RISK PROFILE</div>
+            <div class="risk-val-big text-warning" id="risk-grade">--</div>
+            <p class="text-secondary mt-3 mb-0 fs-5" id="risk-desc">--</p>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-3"><div class="metric-card"><div class="metric-icon"><i class="fas fa-bolt"></i></div><div class="metric-label">ANNUAL VOLATILITY</div><div class="metric-val" id="val-vol">--%</div><small class="text-secondary">Standard Deviation (1Y)</small></div></div>
+            <div class="col-md-3"><div class="metric-card"><div class="metric-icon"><i class="fas fa-balance-scale"></i></div><div class="metric-label">BETA (VS NIFTY)</div><div class="metric-val text-info" id="val-beta">--</div><small class="text-secondary">Market Correlation</small></div></div>
+            <div class="col-md-3"><div class="metric-card"><div class="metric-icon"><i class="fas fa-trophy"></i></div><div class="metric-label">SHARPE RATIO</div><div class="metric-val text-success" id="val-sharpe">--</div><small class="text-secondary">Risk-Adjusted Return</small></div></div>
+            <div class="col-md-3"><div class="metric-card"><div class="metric-icon"><i class="fas fa-chart-area"></i></div><div class="metric-label">MAX DRAWDOWN</div><div class="metric-val text-danger" id="val-dd">--%</div><small class="text-secondary">Worst Crash from Peak</small></div></div>
+        </div>
+
+        <div class="glass-card">
+            <h5 class="fw-bold mb-1 text-white">Drawdown Underwater Plot (Last 90 Days)</h5>
+            <p class="text-secondary small mb-4">This chart visualizes the "pain" an investor would feel during holding periods. Deep drops indicate higher risk.</p>
+            <div style="height: 350px;"><canvas id="drawdownChart" role="img" aria-label="Underwater Drawdown Chart"></canvas></div>
+        </div>
+
+        <div class="expl-box mt-4">
+            <h5 class="fw-bold text-secondary mb-4"><i class="fas fa-graduation-cap me-2"></i>Metric Explanations</h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3"><div class="expl-title"><i class="fas fa-info-circle info-icon"></i>Beta (Market Sensitivity)</div><div class="expl-text">Beta measures how much the stock moves compared to the market.<br>• <strong>Beta > 1.5:</strong> Highly Volatile (High Risk).<br>• <strong>Beta < 1.0:</strong> Stable/Defensive (Low Risk).</div></div>
+                    <div><div class="expl-title"><i class="fas fa-info-circle info-icon"></i>Max Drawdown</div><div class="expl-text">The maximum observed loss from a peak to a trough. It answers the question: "If I bought at the absolute worst time, how much would I have lost?"</div></div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3"><div class="expl-title"><i class="fas fa-info-circle info-icon"></i>Sharpe Ratio</div><div class="expl-text">Measures return per unit of risk.<br>• <strong>> 1.0:</strong> Good investment.<br>• <strong>< 0:</strong> The return is not worth the risk (or losing money).</div></div>
+                    <div><div class="expl-title"><i class="fas fa-info-circle info-icon"></i>Annual Volatility</div><div class="expl-text">The standard deviation of returns. Higher volatility means the price swings wildly, increasing the chance of loss.</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="footer-text"><p class="mb-0">AI-Powered Portfolio Advisory System • Third Year Engineering Project</p></div>
+    </div>
+</div>
+
+<script>
+    let ddChart = null;
+    function runRiskAnalysis() {
+        const ticker = document.getElementById('ticker-input').value;
+        if(!ticker) return alert("Enter Symbol!");
+        document.getElementById('loader').style.display = 'block';
+        document.getElementById('results').style.display = 'none';
+
+        fetch(`/api/risk/?ticker=${ticker}`)
+        .then(res => res.json())
+        .then(data => {
+            if(data.error) { alert("Simulation Mode Activated"); } 
+            document.getElementById('val-vol').innerText = data.volatility + "%";
+            document.getElementById('val-beta').innerText = data.beta;
+            document.getElementById('val-sharpe').innerText = data.sharpe;
+            document.getElementById('val-dd').innerText = data.max_drawdown + "%";
+            const gradeEl = document.getElementById('risk-grade');
+            const descEl = document.getElementById('risk-desc');
+            const boxEl = document.getElementById('risk-banner-box');
+            gradeEl.innerText = data.risk_level;
+            descEl.innerText = data.description;
+            boxEl.className = `risk-banner ${data.card_border}`;
+            gradeEl.className = `risk-val-big ${data.risk_color}`;
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('results').style.display = 'block';
+            renderDrawdownChart(data.chart_labels, data.chart_data);
+        })
+        .catch(err => { console.error(err); alert("Network Error"); document.getElementById('loader').style.display = 'none'; });
+    }
+
+    function renderDrawdownChart(labels, data) {
+        const ctx = document.getElementById('drawdownChart').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(213, 0, 0, 0.6)'); 
+        gradient.addColorStop(1, 'rgba(213, 0, 0, 0.0)');
+
+        if (ddChart) ddChart.destroy();
+
+        ddChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Drawdown %',
+                    data: data,
+                    borderColor: '#D50000',
+                    backgroundColor: gradient,
+                    borderWidth: 3, // Thicker line
+                    pointRadius: 0,
+                    pointHitRadius: 20,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false, axis: 'x' },
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: 'rgba(255,255,255,0.95)', // BRIGHT WHITE BG
+                        titleColor: '#000', // BLACK TEXT
+                        bodyColor: '#000', // BLACK TEXT
+                        titleFont: { size: 15, weight: '900' }, // BIGGER BOLD FONT
+                        bodyFont: { size: 15, weight: 'bold' }, // BIGGER BOLD FONT
+                        padding: 12,
+                        borderColor: '#D50000',
+                        borderWidth: 2,
+                        callbacks: { label: function(context) { return 'Drawdown: ' + context.parsed.y.toFixed(2) + '%'; } }
+                    }
+                },
+                scales: {
+                    x: { display: false },
+                    y: { 
+                        grid: { color: 'rgba(255,255,255,0.2)' }, // BRIGHTER GRID
+                        ticks: { 
+                            color: '#ffffff', // PURE WHITE TEXT
+                            font: { weight: '900', size: 13 } // EXTRA BOLD & LARGER
+                        },
+                        suggestedMax: 0 
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

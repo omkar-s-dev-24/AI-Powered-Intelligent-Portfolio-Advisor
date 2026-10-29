@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Dashboard Specific Styles */
+    .dashboard-container { max-width: 1400px; margin: 0 auto; }
+    
+    /* INDEX CARDS */
+    .index-card {
+        background: #0b0b0f;
+        border: 1px solid #2a2a35;
+        border-radius: 12px;
+        padding: 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: transform 0.2s;
+    }
+    .index-card:hover { transform: translateY(-5px); border-color: #444; }
+    
+    .index-name { color: #666; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; font-weight: 600; }
+    .index-price { color: white; font-size: 2.2rem; font-weight: 800; line-height: 1; margin-bottom: 5px; }
+    .index-change { font-size: 0.95rem; font-weight: 600; }
+
+    /* DYNAMIC ARROW CIRCLES */
+    .icon-box {
+        width: 50px; height: 50px;
+        border-radius: 50%;
+        display: flex; justify-content: center; align-items: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    
+    .icon-box-success {
+        background: rgba(0, 200, 83, 0.1); 
+        color: #00C853; 
+        border: 1px solid rgba(0, 200, 83, 0.2);
+    }
+
+    .icon-box-danger {
+        background: rgba(213, 0, 0, 0.1); 
+        color: #D50000; 
+        border: 1px solid rgba(213, 0, 0, 0.2);
+    }
+
+    .icon-box-secondary { background: #222; color: #888; border: 1px solid #444; }
+
+    /* SECTIONS */
+    .section-title { font-size: 1.5rem; color: white; font-weight: 700; margin-bottom: 20px; }
+    .glass-card { background: #0b0b0f; border: 1px solid #2a2a35; border-radius: 12px; padding: 30px; height: 100%; }
+    
+    /* TRENDING TABLE */
+    .table-dark { background: transparent; }
+    .table-dark th { background: transparent; color: #888; font-weight: 600; border-bottom: 1px solid #333; }
+    .table-dark td { background: transparent; color: white; border-bottom: 1px solid #222; padding: 15px 10px; }
+    
+    /* --- COLOR FIX START --- */
+    .text-green { color: #00C853 !important; font-weight: 700; }
+    .text-red { color: #D50000 !important; font-weight: 700; }
+    /* --- COLOR FIX END --- */
+
+    /* CTA BOX */
+    .cta-box { text-align: center; padding: 40px 20px; display: flex; flex-direction: column; justify-content: center; height: 100%; }
+    .cta-icon { font-size: 3rem; color: #2962FF; margin-bottom: 20px; }
+    .btn-cta { background: #2962FF; color: white; padding: 12px 30px; border-radius: 8px; font-weight: 700; text-decoration: none; display: inline-block; transition: 0.2s; width: 100%; }
+    .btn-cta:hover { background: #0039CB; color: white; }
+</style>
+
+<div class="dashboard-container">
+    
+    <div class="text-center mb-5">
+        <h1 class="fw-bold text-white display-4">Market Intelligence Dashboard</h1>
+        <p class="text-secondary fs-5">Real-time overview of Indian Financial Markets</p>
+    </div>
+
+    <div class="row g-4 mb-5">
+        {% for idx in indices %}
+        <div class="col-md-4">
+            <div class="index-card">
+                <div>
+                    <div class="index-name">{{ idx.name }}</div>
+                    <div class="index-price">{{ idx.price }}</div>
+                    <div class="index-change {{ idx.color }}">{{ idx.change }}</div>
+                </div>
+                <div class="icon-box {{ idx.bg_class }}">
+                    <i class="fas {{ idx.icon }}"></i>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row g-4">
+        
+        <div class="col-md-8">
+            <div class="glass-card">
+                <h5 class="section-title"></i>🔥Trending Stocks (Simulated)</h5>
+                <div class="table-responsive">
+                    <table class="table table-dark align-middle">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Price</th>
+                                <th class="text-end">Change</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="fw-bold">TATAMOTORS.NS</td>
+                                <td>₹980.5</td>
+                                <td class="text-end text-green">+1.25%</td> </tr>
+                            <tr>
+                                <td class="fw-bold">ZOMATO.NS</td>
+                                <td>₹260.1</td>
+                                <td class="text-end text-green">+2.4%</td> </tr>
+                            <tr>
+                                <td class="fw-bold">RELIANCE.NS</td>
+                                <td>₹2980.0</td>
+                                <td class="text-end text-red">-0.5%</td> </tr>
+                            <tr>
+                                <td class="fw-bold">ADANIENT.NS</td>
+                                <td>₹3100.45</td>
+                                <td class="text-end text-green">+0.8%</td> </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="glass-card">
+                <div class="cta-box">
+                    <i class="fas fa-rocket cta-icon"></i>
+                    <h3 class="fw-bold text-white mb-2">Ready to Invest?</h3>
+                    <p class="text-secondary mb-4">Run our Deep AI models on specific assets.</p>
+                    <a href="{% url 'analyzer' %}" class="btn-cta">Go to Stock Analyzer</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

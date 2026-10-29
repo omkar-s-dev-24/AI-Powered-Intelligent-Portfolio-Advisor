@@ -1,0 +1,21 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+
+# Django local database
+db.sqlite3
+
+# Environment variables
+.env
+
+# VS Code workspace settings
+.vscode/
+
+# Static and media files (optional for future)
+/static/
+/media/

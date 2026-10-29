@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* --- RESTORED OLD STYLING --- */
+    .compare-container { max-width: 1200px; margin: 0 auto; }
+
+    /* Single Glass Card Container */
+    .glass-card {
+        background: #0b0b0f;
+        border: 1px solid #2a2a35;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+
+    /* Inputs */
+    label { font-size: 0.85rem; color: #888; margin-bottom: 8px; display: block; }
+    .form-control-dark {
+        background: #18181b;
+        border: 1px solid #444;
+        color: white;
+        height: 50px;
+        font-size: 1.1rem;
+    }
+    .form-control-dark:focus {
+        background: #111;
+        color: white;
+        border-color: #0d6efd;
+        box-shadow: none;
+    }
+
+    /* VS Badge */
+    .vs-text {
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: #444;
+        margin-top: 35px;
+        text-align: center;
+    }
+
+    /* Compare Button */
+    .btn-compare {
+        background-color: #0d6efd;
+        border: none;
+        color: white;
+        font-weight: 700;
+        height: 50px;
+        font-size: 1.1rem;
+        transition: 0.2s;
+    }
+    .btn-compare:hover { background-color: #0b5ed7; transform: translateY(-2px); }
+
+    /* Chart Area */
+    .chart-container { position: relative; height: 450px; width: 100%; margin-top: 30px; cursor: crosshair; }
+    
+    /* Correlation Alert */
+    .corr-alert {
+        background: rgba(13, 202, 240, 0.1);
+        border: 1px solid rgba(13, 202, 240, 0.3);
+        color: #0dcaf0;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        margin-top: 20px;
+    }
+    
+    .footer-text { text-align: center; color: #555; font-size: 0.85rem; margin-top: 50px; padding-bottom: 20px; border-top: 1px solid #222; padding-top: 20px; }
+</style>
+
+<div class="compare-container mt-4">
+    <div class="glass-card">
+        <h2 class="text-white mb-4"><i class="fas fa-balance-scale text-warning me-2"></i>Stock Comparison Tool</h2>
+        
+        <div class="row g-3 align-items-start mb-4">
+            <div class="col-md-5">
+                <label>Stock A (Benchmark)</label>
+                <input list="stockList" id="ticker1" class="form-control form-control-dark" placeholder="e.g. TCS.NS" value="TCS.NS">
+            </div>
+            
+            <div class="col-md-2">
+                <div class="vs-text">VS</div>
+            </div>
+
+            <div class="col-md-5">
+                <label>Stock B (Challenger)</label>
+                <input list="stockList" id="ticker2" class="form-control form-control-dark" placeholder="e.g. INFY.NS" value="INFY.NS">
+            </div>
+
+            <div class="col-12 mt-4">
+                <button type="button" onclick="fetchComparison()" id="compareBtn" class="btn btn-compare w-100">
+                    <i class="fas fa-bolt me-2"></i>Compare Performance
+                </button>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="compareChart"></canvas>
+        </div>
+        
+        <div id="chartSummary"></div>
+
+    </div>
+
+    <div class="footer-text">
+        <p class="mb-0">AI-Powered Portfolio Advisory System • Third Year Engineering Project</p>
+    </div>
+</div>
+
+<datalist id="stockList">
+    {% for symbol, name in assets.items %}
+    <option value="{{ symbol }}">{{ name }}</option>
+    {% endfor %}
+</datalist>
+
+<script>
+let compareChart = null;
+
+async function fetchComparison() {
+    const t1 = document.getElementById('ticker1').value;
+    const t2 = document.getElementById('ticker2').value;
+    const btn = document.getElementById("compareBtn");
+    
+    // UI Feedback
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Calculating...';
+    
+    try {
+        // Use GET request to match updated Django view
+        const response = await fetch(`/api/compare/?ticker1=${t1}&ticker2=${t2}`);
+        const data = await response.json();
+        
+        if(data.error) { throw new Error(data.error); }
+
+        renderChart(data.labels, data.stock1, data.stock2);
+        
+        // Show Correlation Score
+        const corr = data.correlation;
+        let relation = "No Relation";
+        if(corr > 0.6) relation = "Strongly Connected (Move Together)";
+        else if(corr < -0.4) relation = "Inverse Relationship (Move Opposite)";
+        else relation = "Weak Connection";
+        
+        // Add summary text below chart
+        const summary = document.getElementById('chartSummary');
+        summary.innerHTML = `
+            <div class="corr-alert">
+                <strong style="font-size: 1.2rem;">Correlation Score: ${corr}</strong><br>
+                <span>${relation}</span><br>
+                <small class="text-secondary" style="font-size: 0.8rem;">This measures how often these two stocks move in the same direction.</small>
+            </div>`;
+
+    } catch (error) {
+        alert("Error: " + error.message);
+    } finally {
+        btn.innerHTML = '<i class="fas fa-bolt me-2"></i>Compare Performance';
+    }
+}
+
+function renderChart(labels, stock1, stock2) {
+    const ctx = document.getElementById('compareChart').getContext('2d');
+    
+    // Gradient Fills
+    const grad1 = ctx.createLinearGradient(0, 0, 0, 400);
+    grad1.addColorStop(0, 'rgba(13, 110, 253, 0.2)'); grad1.addColorStop(1, 'rgba(13, 110, 253, 0)');
+    
+    const grad2 = ctx.createLinearGradient(0, 0, 0, 400);
+    grad2.addColorStop(0, 'rgba(255, 193, 7, 0.2)'); grad2.addColorStop(1, 'rgba(255, 193, 7, 0)');
+
+    if (compareChart) compareChart.destroy();
+
+    compareChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: stock1.label + " (% Return)",
+                    data: stock1.data,
+                    borderColor: '#0d6efd', // Blue
+                    backgroundColor: grad1,
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    pointHitRadius: 20,
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: stock2.label + " (% Return)",
+                    data: stock2.data,
+                    borderColor: '#ffc107', // Yellow
+                    backgroundColor: grad2,
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    pointHitRadius: 20,
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { labels: { color: 'white', font: {size: 12, weight: 'bold'} } },
+                tooltip: {
+                    backgroundColor: 'rgba(255,255,255,0.95)',
+                    titleColor: '#000',
+                    bodyColor: '#000',
+                    titleFont: {weight: 'bold'},
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ": " + context.raw.toFixed(2) + "%";
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { display: false },
+                y: { 
+                    ticks: { color: 'white', font: {weight:'bold'}, callback: function(value) { return value + "%" } }, 
+                    grid: { color: 'rgba(255,255,255,0.1)' } 
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}
